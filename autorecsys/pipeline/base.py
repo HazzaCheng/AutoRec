@@ -107,6 +107,7 @@ class Block(HyperModel, Stateful):
         """
         inputs = nest.flatten(inputs)
         self.inputs = inputs
+        # 将当前 block 添加到其他 input node 的 output node 里
         for input_node in self.inputs:
             if not isinstance(input_node, Node):
                 raise TypeError('Expect the inputs to layer {name} to be '
@@ -115,6 +116,7 @@ class Block(HyperModel, Stateful):
                     type=type(input_node)))
             input_node.add_out_block(self)
         self.outputs = []
+        # 将当前 block 添加到其他 output node 的 input node 里
         for _ in range(self._num_output_node):
             output_node = Node()
             output_node.add_in_block(self)

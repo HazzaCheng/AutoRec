@@ -5,7 +5,7 @@ import logging
 import tempfile
 import tensorflow as tf
 
-from autorecsys.utils.common import to_snake_case, create_directory,  load_dataframe_input
+from autorecsys.utils.common import to_snake_case, create_directory, load_dataframe_input
 from autorecsys.searcher.tuners.tuner import METRIC, PipeTuner
 from autorecsys.searcher import tuners
 from autorecsys.recommender import CTRRecommender, RPRecommender
@@ -44,6 +44,7 @@ class Search(object):
         overwrite: Boolean. Defaults to `True`. Whether we want to ovewrite an existing 
             project with the name defined as ``directory/name`` or not.
     """
+
     def __init__(self, model=None, name=None, tuner='random', tuner_params=None, directory='.', overwrite=True):
         self.pipe = model
         self.tuner = tuner
@@ -105,7 +106,7 @@ class Search(object):
                  'overwrite': Boolean. Whether we want to ovewrite an existing 
                     tuner or not. 
         """
-        tuner_cls = tuners.get_tuner_class( tuner )
+        tuner_cls = tuners.get_tuner_class(tuner)
         hps = self.pipe.get_hyperparameters()
         tuner = tuner_cls(hypergraph=self.pipe,
                           objective=self.objective,
@@ -121,7 +122,7 @@ class Search(object):
             x: numpy array / data frame / string path of a csv file. 
                 Features used to do the prediction.
         """
-        if isinstance (self.pipe, RPRecommender):
+        if isinstance(self.pipe, RPRecommender):
             x = load_dataframe_input(x)
         return self.best_model.predict(x)
 

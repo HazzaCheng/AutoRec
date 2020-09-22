@@ -11,13 +11,12 @@ class Bias(Layer):
     # Attributes:
         units (int). The units of all layer in the Bias layer.
     """
-    def __init__(self, units=32):
-          super(Bias, self).__init__()
 
-          bias_init = tf.zeros_initializer()
-          self.bias = tf.Variable(initial_value=bias_init(shape=(units,),
-                                                    dtype='float32'),
-                               trainable=True)
+    def __init__(self, units=32):
+        super(Bias, self).__init__()
+
+        bias_init = tf.zeros_initializer()
+        self.bias = tf.Variable(initial_value=bias_init(shape=(units,), dtype='float32'), trainable=True)
 
     def call(self, inputs):
-          return inputs + self.bias
+        return inputs + self.bias

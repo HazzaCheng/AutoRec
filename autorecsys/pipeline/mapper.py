@@ -80,6 +80,7 @@ class DenseFeatureMapper(Block):
     def build(self, hp, inputs=None):
         input_node = inputs
         embedding_dim = self.embedding_dim or hp.Choice('embedding_dim', [8, 16], default=8)
+        # 其实就是把每个 dense 值和一个 embedding_dim 维的 embedding 向量做映射
         output_node = tf.stack(
             [
                 tf.tensordot(input_node[0][:, feat_id], tf.keras.layers.Embedding(1, embedding_dim)(0), axes=0)

@@ -26,6 +26,7 @@ class RandomSelectInteraction(Block):
         super().set_state(state)
 
     def build(self, hp, inputs=None):
+        # 随机选择一个输入的node
         input_node = nest.flatten(inputs)
         output_node = random.choice(input_node)
         return output_node
@@ -86,10 +87,10 @@ class ElementwiseInteraction(Block):
             shape_set.add(node.shape[1])
         if len(shape_set) > 1:
             # raise ValueError("Inputs of ElementwiseInteraction should have same dimension.")
-            min_len = min( shape_set )
+            min_len = min(shape_set)
 
-            input_node = [tf.keras.layers.Dense(min_len)(node) 
-                        if node.shape[1] != min_len  else node for node in input_node]
+            input_node = [tf.keras.layers.Dense(min_len)(node)
+                          if node.shape[1] != min_len else node for node in input_node]
 
         elementwise_type = self.elementwise_type or hp.Choice('elementwise_type',
                                                               ["sum", "average", "innerporduct", "max", "min"],
@@ -113,7 +114,7 @@ class MLPInteraction(Block):
     """Module for MLP operation. This block can seted as MLP with different layer, unit, and other setting .
     # Attributes:
         units (int). The units of all layer in the MLP block.
-        num_layers (int). The number of the layers in the MLP blck
+        num_layers (int). The number of the layers in the MLP block
         use_batchnorm (Boolean). Use batch normalization or not.
         dropout_rate(float). The value of drop out in the last layer of MLP.
     """
@@ -186,7 +187,7 @@ class HyperInteraction(Block):
             "ConcatenateInteraction": ConcatenateInteraction,
             "RandomSelectInteraction": RandomSelectInteraction,
             "ElementwiseInteraction": ElementwiseInteraction,
-            "FMInteraction": FMInteraction, 
+            "FMInteraction": FMInteraction,
             "CrossNetInteraction": CrossNetInteraction,
             "SelfAttentionInteraction": SelfAttentionInteraction,
         }
@@ -210,16 +211,17 @@ class HyperInteraction(Block):
                                                                   [1, 2, 3, 4, 5, 6],
                                                                   default=3)
         interactors_name = []
+        # 其实就是对输入做多个 interact，然后 concat 起来
         for idx in range(meta_interator_num):
             tmp_interactor_type = self.interactor_type or hp.Choice('interactor_type_' + str(idx),
                                                                     list(self.name2interactor.keys()),
                                                                     default='ConcatenateInteraction')
             interactors_name.append(tmp_interactor_type)
 
-        outputs = [self.name2interactor[interactor_name]().build(hp, input_node) 
-                                for interactor_name in interactors_name]
+        outputs = [self.name2interactor[interactor_name]().build(hp, input_node)
+                   for interactor_name in interactors_name]
 
-        # DO WE REALLY NEED TO CAT THEM?
+        # TODO DO WE REALLY NEED TO CAT THEM?
         outputs = [tf.keras.layers.Flatten()(node) if len(node.shape) > 2 else node for node in outputs]
         outputs = tf.concat(outputs, axis=1)
         return outputs
@@ -268,7 +270,7 @@ class FMInteraction(Block):
             if len(node.shape) == 1:
                 input_node[idx] = tf.expand_dims(tf.expand_dims(node, -1), -1)
             elif len(node.shape) == 2:
-                input_node[idx] = tf.expand_dims(node, 1) 
+                input_node[idx] = tf.expand_dims(node, 1)
             elif len(node.shape) > 3:
                 raise ValueError(
                     "Unexpected inputs dimensions %d, expect to be smaller than 3" % len(node.shape)
@@ -276,8 +278,8 @@ class FMInteraction(Block):
 
         # align the embedding_dim of input nodes if they're not the same
         embedding_dim = self.embedding_dim or hp.Choice('embedding_dim', [4, 8, 16], default=8)
-        output_node = [tf.keras.layers.Dense(embedding_dim)(node) 
-                        if node.shape[2] != embedding_dim  else node for node in input_node]
+        output_node = [tf.keras.layers.Dense(embedding_dim)(node)
+                       if node.shape[2] != embedding_dim else node for node in input_node]
         output_node = tf.concat(output_node, axis=1)
 
         square_of_sum = tf.square(tf.reduce_sum(output_node, axis=1, keepdims=True))
@@ -287,29 +289,27 @@ class FMInteraction(Block):
         return output_node
 
 
-
-
 class CrossNetInteraction(Block):
     """CTR module for crossnet layer in deep & cross network.
 
     Reference: https://arxiv.org/pdf/1708.05123.pdf
 
-    This block applies cross interaction operation on a 2D tensors of size 
-    (batch_size, embedding_size). 
+    This block applies cross interaction operation on a 2D tensors of size
+    (batch_size, embedding_size).
 
-    We assume the input could be a list of tensors of 2D or 3D, and the block will 
+    We assume the input could be a list of tensors of 2D or 3D, and the block will
     flatten them as as list of 2D tensors, and ten concatenate them as a single 2D
-    tensor. The cross interaction follows the reference and the number of 
+    tensor. The cross interaction follows the reference and the number of
     layers of the cross interaction is tunable.
 
 
     # Attributes:
         layer_num (int). The number of layers of the cross interaction.
     """
-    def __init__(self, 
-                layer_num=None, 
-                **kwargs):
 
+    def __init__(self,
+                 layer_num=None,
+                 **kwargs):
         super().__init__(**kwargs)
         self.layer_num = layer_num
 
@@ -325,9 +325,7 @@ class CrossNetInteraction(Block):
         super().set_state(state)
         self.layer_num = state['layer_num']
 
-
     def build(self, hp, inputs=None):
-
         input_node = [tf.keras.layers.Flatten()(node) if len(node.shape) > 2 else node for node in nest.flatten(inputs)]
         input_node = tf.concat(input_node, axis=1)
 
@@ -337,13 +335,12 @@ class CrossNetInteraction(Block):
         # perform the multilayer cross net interaction
         output_node = input_node
         for _ in range(layer_num):
-            pre_output_emb = tf.keras.layers.Dense(1, use_bias=False)(output_node) 
+            pre_output_emb = tf.keras.layers.Dense(1, use_bias=False)(output_node)
             cross_dot = tf.math.multiply(input_node, pre_output_emb)
             output_node = cross_dot + output_node
             output_node = Bias(embedding_dim)(output_node)
 
-        return output_node 
-
+        return output_node
 
 
 class SelfAttentionInteraction(Block):
@@ -365,12 +362,13 @@ class SelfAttentionInteraction(Block):
         head_num (int). Number of attention heads.
         residual (boolean). Whether to apply residual connection after self-attention or not.
     """
-    def __init__(self, 
-                  embedding_dim=None, 
-                  att_embedding_dim=None, 
-                  head_num=None, 
-                  residual=None, 
-                  **kwargs):
+
+    def __init__(self,
+                 embedding_dim=None,
+                 att_embedding_dim=None,
+                 head_num=None,
+                 residual=None,
+                 **kwargs):
         super(SelfAttentionInteraction, self).__init__(**kwargs)
 
         self.embedding_dim = embedding_dim
@@ -415,8 +413,8 @@ class SelfAttentionInteraction(Block):
           single-head attention result
         """
 
-        matmul_qk = tf.matmul(q, k, transpose_b=True) 
-        
+        matmul_qk = tf.matmul(q, k, transpose_b=True)
+
         # scale matmul_qk
         dk = tf.cast(tf.shape(k)[-1], tf.float32)
         scaled_attention_logits = matmul_qk / tf.math.sqrt(dk)
@@ -436,18 +434,15 @@ class SelfAttentionInteraction(Block):
             if len(node.shape) == 1:
                 input_node[idx] = tf.expand_dims(tf.expand_dims(node, -1), -1)
             elif len(node.shape) == 2:
-                input_node[idx] = tf.expand_dims(node, 1) 
+                input_node[idx] = tf.expand_dims(node, 1)
             elif len(node.shape) > 3:
-                raise ValueError(
-                    "Unexpected inputs dimensions %d, expect to be smaller than 3" % len(node.shape)
-                )
+                raise ValueError("Unexpected inputs dimensions %d, expect to be smaller than 3" % len(node.shape))
 
         # align the embedding_dim of input nodes if they're not the same
         embedding_dim = self.embedding_dim or hp.Choice('embedding_dim', [4, 8, 16], default=8)
-        output_node = [tf.keras.layers.Dense(embedding_dim)(node) 
-                        if node.shape[2] != embedding_dim  else node for node in input_node]
+        output_node = [tf.keras.layers.Dense(embedding_dim)(node)
+                       if node.shape[2] != embedding_dim else node for node in input_node]
         output_node = tf.concat(output_node, axis=1)
-
 
         att_embedding_dim = self.att_embedding_dim or hp.Choice('att_embedding_dim', [4, 8, 16], default=8)
         head_num = self.head_num or hp.Choice('head_num', [1, 2, 3, 4], default=2)
@@ -455,19 +450,17 @@ class SelfAttentionInteraction(Block):
 
         outputs = []
         for _ in range(head_num):
-            query = tf.keras.layers.Dense(att_embedding_dim, use_bias=False)(output_node) 
-            key = tf.keras.layers.Dense(att_embedding_dim, use_bias=False)(output_node) 
-            value = tf.keras.layers.Dense(att_embedding_dim, use_bias=False)(output_node) 
-          
+            query = tf.keras.layers.Dense(att_embedding_dim, use_bias=False)(output_node)
+            key = tf.keras.layers.Dense(att_embedding_dim, use_bias=False)(output_node)
+            value = tf.keras.layers.Dense(att_embedding_dim, use_bias=False)(output_node)
+
             outputs.append(
-                            self._scaled_dot_product_attention(query, key, value)
-                          )
+                self._scaled_dot_product_attention(query, key, value)
+            )
 
         outputs = tf.concat(outputs, axis=2)
 
         if self.residual:
             outputs += tf.keras.layers.Dense(att_embedding_dim * head_num, use_bias=False)(output_node)
-                  
+
         return output_node
-
-

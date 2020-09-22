@@ -41,7 +41,6 @@ class Graph(Stateful):
             if block.__class__ in func:
                 func[block.__class__](block)
 
-
     def _build_network(self):
         self._node_to_id = {}
 
@@ -173,6 +172,7 @@ class Graph(Stateful):
 
     def build(self, hp):
         pass
+
 
 class PreprocessGraph(Graph):
     """A graph consists of only Preprocessors.
@@ -405,7 +405,6 @@ def copy(old_instance):
     return instance
 
 
-
 class HyperGraph(Graph):
     """A HyperModel based on connected Blocks and HyperBlocks.
     # Arguments
@@ -438,7 +437,6 @@ class HyperGraph(Graph):
                                      single_hp.__class__.__name__,
                                      single_hp.get_config())
         return hps
-
 
     def hyper_build(self, hp):
         """Build a GraphHyperModel with no HyperBlock but only Block."""

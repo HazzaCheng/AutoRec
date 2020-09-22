@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
 import logging
@@ -43,7 +44,7 @@ sparse_feat_emb = SparseFeatureMapper(
     embedding_dim=16)(sparse_input_node)
 
 sparse_feat_bottom_output = HyperInteraction(meta_interator_num=2)([sparse_feat_emb])
-dense_feat_bottom_output =HyperInteraction(meta_interator_num=2)([dense_feat_emb])
+dense_feat_bottom_output = HyperInteraction(meta_interator_num=2)([dense_feat_emb])
 top_mlp_output = HyperInteraction(meta_interator_num=2)([sparse_feat_bottom_output, dense_feat_bottom_output])
 
 output = PointWiseOptimizer()(top_mlp_output)
@@ -60,8 +61,8 @@ searcher.search(x=train_X,
                 y_val=val_y,
                 objective='val_BinaryCrossentropy',
                 batch_size=10000,
-                epochs = 20,
-                callbacks = [ tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=1)] 
+                epochs=20,
+                callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=1)]
                 )
 logger.info('First 10 Predicted Ratings: {}'.format(searcher.predict(x=val_X)[:10]))
 logger.info('Predicting Accuracy (logloss): {}'.format(searcher.evaluate(x=val_X, y_true=val_y)))

@@ -4,16 +4,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import argparse
 import time
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import logging
 import tensorflow as tf
 from autorecsys.auto_search import Search
 from autorecsys.pipeline import Input, LatentFactorMapper, DenseFeatureMapper, SparseFeatureMapper, \
-                        ElementwiseInteraction, FMInteraction, MLPInteraction, ConcatenateInteraction, \
-                        CrossNetInteraction, SelfAttentionInteraction, HyperInteraction, \
-                        PointWiseOptimizer
+    ElementwiseInteraction, FMInteraction, MLPInteraction, ConcatenateInteraction, \
+    CrossNetInteraction, SelfAttentionInteraction, HyperInteraction, \
+    PointWiseOptimizer
 from autorecsys.pipeline.preprocessor import MovielensPreprocessor
 from autorecsys.recommender import CTRRecommender
 
@@ -28,8 +28,8 @@ def build_dlrm(emb_dict):
         emb_list = [emb for _, emb in emb_dict.items()]
         output = MLPInteraction(num_layers=2)(emb_list)
     else:
-        sparse_feat_mlp_output = [MLPInteraction()( [emb_dict['sparse']] )] if 'sparse' in emb_dict else []
-        dense_feat_mlp_output = [MLPInteraction()( [emb_dict['dense']] )] if 'dense' in emb_dict else []
+        sparse_feat_mlp_output = [MLPInteraction()([emb_dict['sparse']])] if 'sparse' in emb_dict else []
+        dense_feat_mlp_output = [MLPInteraction()([emb_dict['dense']])] if 'dense' in emb_dict else []
         output = MLPInteraction(num_layers=2)(sparse_feat_mlp_output + dense_feat_mlp_output)
     return output
 
@@ -41,8 +41,8 @@ def build_deepfm(emb_dict):
         bottom_mlp_output = [MLPInteraction(num_layers=2)(emb_list)]
         output = MLPInteraction(num_layers=2)(fm_output + bottom_mlp_output)
     else:
-        fm_output = [FMInteraction()( [emb_dict['sparse']] )] if 'sparse' in emb_dict else []
-        bottom_mlp_output = [MLPInteraction()( [emb_dict['dense']] )] if 'dense' in emb_dict else []
+        fm_output = [FMInteraction()([emb_dict['sparse']])] if 'sparse' in emb_dict else []
+        bottom_mlp_output = [MLPInteraction()([emb_dict['dense']])] if 'dense' in emb_dict else []
         output = MLPInteraction(num_layers=2)(fm_output + bottom_mlp_output)
     return output
 
@@ -54,8 +54,8 @@ def build_crossnet(emb_dict):
         bottom_mlp_output = [MLPInteraction(num_layers=2)(emb_list)]
         output = MLPInteraction(num_layers=2)(fm_output + bottom_mlp_output)
     else:
-        fm_output = [CrossNetInteraction()( [emb_dict['sparse']] )] if 'sparse' in emb_dict else []
-        bottom_mlp_output = [MLPInteraction()( [emb_dict['dense']] )] if 'dense' in emb_dict else []
+        fm_output = [CrossNetInteraction()([emb_dict['sparse']])] if 'sparse' in emb_dict else []
+        bottom_mlp_output = [MLPInteraction()([emb_dict['dense']])] if 'dense' in emb_dict else []
         output = MLPInteraction(num_layers=2)(fm_output + bottom_mlp_output)
     return output
 
@@ -67,8 +67,8 @@ def build_autoint(emb_dict):
         bottom_mlp_output = [MLPInteraction(num_layers=2)(emb_list)]
         output = MLPInteraction(num_layers=2)(fm_output + bottom_mlp_output)
     else:
-        fm_output = [SelfAttentionInteraction()( [emb_dict['sparse']] )] if 'sparse' in emb_dict else []
-        bottom_mlp_output = [MLPInteraction()( [emb_dict['dense']] )] if 'dense' in emb_dict else []
+        fm_output = [SelfAttentionInteraction()([emb_dict['sparse']])] if 'sparse' in emb_dict else []
+        bottom_mlp_output = [MLPInteraction()([emb_dict['dense']])] if 'dense' in emb_dict else []
         output = MLPInteraction(num_layers=2)(fm_output + bottom_mlp_output)
     return output
 
@@ -86,8 +86,10 @@ def build_autorec(emb_dict):
         emb_list = [emb for _, emb in emb_dict.items()]
         output = HyperInteraction()(emb_list)
     else:
-        sparse_feat_bottom_output = [HyperInteraction(meta_interator_num=2)([sparse_feat_emb])] if 'sparse' in emb_dict else []
-        dense_feat_bottom_output = [HyperInteraction(meta_interator_num=2)([dense_feat_emb])] if 'dense' in emb_dict else []
+        sparse_feat_bottom_output = [
+            HyperInteraction(meta_interator_num=2)([sparse_feat_emb])] if 'sparse' in emb_dict else []
+        dense_feat_bottom_output = [
+            HyperInteraction(meta_interator_num=2)([dense_feat_emb])] if 'dense' in emb_dict else []
         top_mlp_output = HyperInteraction(meta_interator_num=2)(sparse_feat_bottom_output + dense_feat_bottom_output)
         output = HyperInteraction(meta_interator_num=2)([top_mlp_output])
     return output
@@ -106,7 +108,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print("args:", args)
 
-
     if args.sep == None:
         args.sep = '::'
 
@@ -117,16 +118,17 @@ if __name__ == '__main__':
         train_X, train_y, val_X, val_y = data.train_X, data.train_y, data.val_X, data.val_y
         input = Input(shape=[2])
         user_emb = LatentFactorMapper(feat_column_id=0,
-                                          id_num=10000,
-                                          embedding_dim=64)(input)
+                                      id_num=10000,
+                                      embedding_dim=64)(input)
         item_emb = LatentFactorMapper(feat_column_id=1,
-                                          id_num=10000,
-                                          embedding_dim=64)(input)
+                                      id_num=10000,
+                                      embedding_dim=64)(input)
         emb_dict = {'user': user_emb, 'item': item_emb}
 
     if args.data == "criteo":
         # data = CriteoPreprocessor(args.data_path)
         import numpy as np
+
         mini_criteo = np.load("./examples/datasets/criteo/criteo_1000.npz")
         # TODO: preprocess train val split
         train_X = [mini_criteo['X_int'].astype(np.float32), mini_criteo['X_cat'].astype(np.float32)]
@@ -151,8 +153,6 @@ if __name__ == '__main__':
             ],
             embedding_dim=16)(sparse_input_node)
         emb_dict = {'dense': dense_feat_emb, 'sparse': sparse_feat_emb}
-
-
 
     # select model
     if args.model == 'dlrm':
@@ -183,11 +183,11 @@ if __name__ == '__main__':
                     y_val=val_y,
                     objective='val_BinaryCrossentropy',
                     batch_size=args.batch_size,
-                    epochs = 20,
-                    callbacks = [ tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=1)] 
+                    epochs=20,
+                    callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=1)]
                     )
     end_time = time.time()
-    print( "runing time:", end_time - start_time )
-    print( "args", args)
+    print("runing time:", end_time - start_time)
+    print("args", args)
     logger.info('Predicted Ratings: {}'.format(searcher.predict(x=val_X)))
     logger.info('Predicting Accuracy (mse): {}'.format(searcher.evaluate(x=val_X, y_true=val_y)))
